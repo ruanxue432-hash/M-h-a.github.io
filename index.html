@@ -1,11 +1,576 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M-h-a.github.io</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script Encoder / Decoder + Auto Detect</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #0d1017;
+            color: #e6edf3;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #21262d;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #2f81f7;
+            letter-spacing: 0.5px;
+        }
+
+        .mode-switch {
+            display: flex;
+            background: #161b22;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #8b949e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #2f81f7;
+            color: #fff;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            background: #161b22;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #21262d;
+            margin-bottom: 16px;
+        }
+
+        label {
+            font-size: 13px;
+            color: #8b949e;
+            font-weight: 600;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            background: #0d1117;
+            color: #e6edf3;
+            font-size: 13px;
+            outline: none;
+        }
+
+        select:focus, input[type="text"]:focus {
+            border-color: #2f81f7;
+        }
+
+        #keyBox {
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .detect-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-left: 4px solid #a371f7;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .detect-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #d2a8ff;
+            margin-bottom: 6px;
+        }
+
+        .detect-list {
+            list-style: none;
+            font-size: 13px;
+            color: #c9d1d9;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 800px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #8b949e;
+        }
+
+        textarea {
+            width: 100%;
+            height: 350px;
+            background: #0d1117;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #2f81f7;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        button.action-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-run { background: #238636; color: #fff; }
+        .btn-run:hover { background: #2ea043; }
+
+        .btn-detect { background: #8957e5; color: #fff; }
+        .btn-detect:hover { background: #a371f7; }
+
+        .btn-copy { background: #2f81f7; color: #fff; }
+        .btn-copy:hover { background: #1f6feb; }
+
+        .btn-swap { background: #21262d; color: #e6edf3; border: 1px solid #30363d !important; }
+        .btn-swap:hover { background: #30363d; }
+
+        .btn-clear { background: #da3633; color: #fff; }
+        .btn-clear:hover { background: #f85149; }
+
+        .status {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #7ee787;
+            min-height: 20px;
+        }
+
+        .status.error { color: #ff7b72; }
+    </style>
 </head>
 <body>
-  <h1>M-h-a.github.io</h1>
+<div class="container">
+    <header>
+        <h1>SCRIPT ENCODER / DECODER</h1>
+        <div class="mode-switch">
+            <button class="mode-btn active" id="tabEncode" onclick="setMode('encode')">Mã hóa</button>
+            <button class="mode-btn" id="tabDecode" onclick="setMode('decode')">Giải mã</button>
+        </div>
+    </header>
+
+    <div class="toolbar">
+        <label for="cipherType">Kiểu mã hóa:</label>
+        <select id="cipherType" onchange="onCipherChange()">
+            <option value="base64">Base64 (UTF-8)</option>
+            <option value="hex">Hex (Hệ 16)</option>
+            <option value="xor">XOR + Base64 (Có Key)</option>
+            <option value="url">URL / Percent Encoding</option>
+            <option value="rev_b64">Đảo chuỗi + Base64</option>
+            <option value="lua_dec">Lua Decimal Escape (\108\111...)</option>
+        </select>
+
+        <div id="keyBox">
+            <label for="xorKey">Key:</label>
+            <input type="text" id="xorKey" value="mykey123" placeholder="Nhập khóa XOR...">
+        </div>
+    </div>
+
+    <div class="detect-box" id="detectBox">
+        <div class="detect-title">KẾT QUẢ CHẨN ĐOÁN MÃ HÓA:</div>
+        <ul class="detect-list" id="detectList"></ul>
+    </div>
+
+    <div class="workspace">
+        <div class="panel">
+            <div class="panel-header">
+                <span id="inputLabel">SCRIPT GỐC (INPUT)</span>
+                <span id="inputCount">0 ký tự</span>
+            </div>
+            <textarea id="inputArea" placeholder="Dán script hoặc chuỗi mã hóa vào đây..." oninput="updateCounts()"></textarea>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span id="outputLabel">KẾT QUẢ MÃ HÓA (OUTPUT)</span>
+                <span id="outputCount">0 ký tự</span>
+            </div>
+            <textarea id="outputArea" placeholder="Kết quả sẽ hiện ở đây..." readonly oninput="updateCounts()"></textarea>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="action-btn btn-run" id="runBtn" onclick="processScript()">Thực hiện mã hóa</button>
+        <button class="action-btn btn-detect" onclick="diagnoseCipher()">Chẩn đoán loại mã hóa</button>
+        <button class="action-btn btn-copy" onclick="copyOutput()">Copy kết quả</button>
+        <button class="action-btn btn-swap" onclick="swapPanels()">Đảo chiều Input ↔ Output</button>
+        <button class="action-btn btn-clear" onclick="clearAll()">Xóa trắng</button>
+    </div>
+
+    <div class="status" id="statusMsg"></div>
+</div>
+
+<script>
+    let currentMode = 'encode';
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('tabEncode').classList.toggle('active', mode === 'encode');
+        document.getElementById('tabDecode').classList.toggle('active', mode === 'decode');
+
+        const isEncode = mode === 'encode';
+        document.getElementById('inputLabel').innerText = isEncode ? 'SCRIPT GỐC (INPUT)' : 'CHUỖI CẦN GIẢI MÃ (INPUT)';
+        document.getElementById('outputLabel').innerText = isEncode ? 'KẾT QUẢ MÃ HÓA (OUTPUT)' : 'SCRIPT ĐÃ GIẢI MÃ (OUTPUT)';
+        document.getElementById('runBtn').innerText = isEncode ? 'Thực hiện mã hóa' : 'Thực hiện giải mã';
+        document.getElementById('outputArea').readOnly = isEncode;
+        setStatus('');
+    }
+
+    function onCipherChange() {
+        const type = document.getElementById('cipherType').value;
+        document.getElementById('keyBox').style.display = (type === 'xor') ? 'flex' : 'none';
+        setStatus('');
+    }
+
+    function setStatus(msg, isError = false) {
+        const el = document.getElementById('statusMsg');
+        el.innerText = msg;
+        el.classList.toggle('error', isError);
+    }
+
+    function updateCounts() {
+        const inVal = document.getElementById('inputArea').value;
+        const outVal = document.getElementById('outputArea').value;
+        document.getElementById('inputCount').innerText = `${inVal.length} ký tự`;
+        document.getElementById('outputCount').innerText = `${outVal.length} ký tự`;
+    }
+
+    // Các hàm chuyển đổi
+    function toBase64(str) {
+        const bytes = new TextEncoder().encode(str);
+        let bin = '';
+        bytes.forEach(b => bin += String.fromCharCode(b));
+        return btoa(bin);
+    }
+
+    function fromBase64(b64) {
+        const bin = atob(b64.trim());
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    }
+
+    function toHex(str) {
+        const bytes = new TextEncoder().encode(str);
+        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function fromHex(hex) {
+        const clean = hex.replace(/\\x/gi, '').replace(/\s+/g, '');
+        if (clean.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(clean)) {
+            throw new Error('Chuỗi Hex không hợp lệ.');
+        }
+        const bytes = new Uint8Array(clean.length / 2);
+        for (let i = 0; i < clean.length; i += 2) {
+            bytes[i / 2] = parseInt(clean.slice(i, i + 2), 16);
+        }
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    }
+
+    function toLuaDec(str) {
+        const bytes = new TextEncoder().encode(str);
+        return Array.from(bytes).map(b => '\\' + b).join('');
+    }
+
+    function fromLuaDec(str) {
+        const matches = str.trim().match(/\\(\d{1,3})/g);
+        if (!matches) throw new Error('Không đúng định dạng Lua Decimal Escape (\\108\\111...)');
+        const bytes = new Uint8Array(matches.map(m => parseInt(m.slice(1), 10)));
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    }
+
+    function xorCipher(str, key) {
+        if (!key) throw new Error('Vui lòng nhập Key cho kiểu XOR.');
+        const dataBytes = new TextEncoder().encode(str);
+        const keyBytes = new TextEncoder().encode(key);
+        const outBytes = new Uint8Array(dataBytes.length);
+        for (let i = 0; i < dataBytes.length; i++) {
+            outBytes[i] = dataBytes[i] ^ keyBytes[i % keyBytes.length];
+        }
+        let bin = '';
+        outBytes.forEach(b => bin += String.fromCharCode(b));
+        return btoa(bin);
+    }
+
+    function xorDecipher(b64, key) {
+        if (!key) throw new Error('Vui lòng nhập Key cho kiểu XOR.');
+        const bin = atob(b64.trim());
+        const dataBytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) dataBytes[i] = bin.charCodeAt(i);
+        const keyBytes = new TextEncoder().encode(key);
+        const outBytes = new Uint8Array(dataBytes.length);
+        for (let i = 0; i < dataBytes.length; i++) {
+            outBytes[i] = dataBytes[i] ^ keyBytes[i % keyBytes.length];
+        }
+        return new TextDecoder().decode(outBytes);
+    }
+
+    // Kiểm tra chuỗi có giống code / văn bản đọc được không
+    function looksReadable(text) {
+        if (!text || text.length === 0) return false;
+        let printable = 0;
+        for (let i = 0; i < text.length; i++) {
+            const code = text.charCodeAt(i);
+            if ((code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13 || code >= 160) {
+                printable++;
+            }
+        }
+        return (printable / text.length) > 0.85;
+    }
+
+    // TÍNH NĂNG CHẨN ĐOÁN LOẠI MÃ HÓA
+    function diagnoseCipher() {
+        const raw = document.getElementById('inputArea').value.trim();
+        const detectBox = document.getElementById('detectBox');
+        const detectList = document.getElementById('detectList');
+
+        if (!raw) {
+            setStatus('Dán chuỗi vào ô Input trước khi chẩn đoán!', true);
+            detectBox.style.display = 'none';
+            return;
+        }
+
+        const findings = [];
+        let autoSelectType = null;
+
+        // 1. Kiểm tra Luau / Lua Obfuscator nổi tiếng
+        if (/MoonSec|IronBrew|Luraph|WeAreDevs|loadstring\s*\(/i.test(raw)) {
+            findings.push('• Phát hiện dấu hiệu Script Obfuscator / Loader (Lua/Luau như MoonSec, IronBrew, Luraph hoặc loadstring).');
+        }
+
+        // 2. Kiểm tra Lua Decimal Escape (\108\111\99...)
+        if (/^(\\\d{1,3}\s*)+$/.test(raw)) {
+            try {
+                const decoded = fromLuaDec(raw);
+                if (looksReadable(decoded)) {
+                    findings.push('• Chuẩn xác 100%: Lua Decimal Escape (\\108\\111...) — Giải mã ra text đọc được.');
+                    autoSelectType = 'lua_dec';
+                }
+            } catch (e) {}
+        }
+
+        // 3. Kiểm tra Hex (\x6c\x6f hoặc 6c6f63616c...)
+        const cleanHex = raw.replace(/\\x/gi, '').replace(/\s+/g, '');
+        if (cleanHex.length >= 4 && cleanHex.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(cleanHex)) {
+            try {
+                const decoded = fromHex(raw);
+                if (looksReadable(decoded)) {
+                    findings.push('• Chuẩn xác 98%: Hex (Hệ cơ số 16) — Nội dung giải mã là văn bản/code sạch.');
+                    if (!autoSelectType) autoSelectType = 'hex';
+                } else {
+                    findings.push('• Khả năng cao: Hex chứa dữ liệu nhị phân (Bytecode hoặc đã mã hóa thêm lớp khác).');
+                }
+            } catch (e) {
+                findings.push('• Dạng chuỗi Hex (nhưng không phải UTF-8 thuần túy).');
+            }
+        }
+
+        // 4. Kiểm tra URL Encoding (%20, %0A, %3D...)
+        if (/%[0-9A-Fa-f]{2}/.test(raw)) {
+            try {
+                const decoded = decodeURIComponent(raw);
+                if (decoded !== raw && looksReadable(decoded)) {
+                    findings.push('• Chuẩn xác 95%: URL / Percent Encoding.');
+                    if (!autoSelectType) autoSelectType = 'url';
+                }
+            } catch (e) {}
+        }
+
+        // 5. Kiểm tra Base64 / Đảo chuỗi + Base64 / XOR + Base64
+        const cleanB64 = raw.replace(/\s+/g, '');
+        if (cleanB64.length >= 4 && cleanB64.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(cleanB64)) {
+            try {
+                const decoded = fromBase64(cleanB64);
+                const revDecoded = [...decoded].reverse().join('');
+
+                // Kiểm tra xem bản đảo có chứa từ khóa code phổ biến không
+                const codeKeywords = /(local |function|return|end|print|game:|Instance\.new|var |const |let |<html>|def )/i;
+                if (codeKeywords.test(revDecoded) && !codeKeywords.test(decoded)) {
+                    findings.push('• Chuẩn xác 95%: Đảo chuỗi + Base64 (Reversed Base64).');
+                    if (!autoSelectType) autoSelectType = 'rev_b64';
+                } else if (looksReadable(decoded)) {
+                    findings.push('• Chuẩn xác 95%: Base64 (UTF-8) — Giải mã trực tiếp ra text/script.');
+                    if (!autoSelectType) autoSelectType = 'base64';
+                }
+            } catch (e) {
+                findings.push('• Khả năng cao: XOR + Base64 hoặc Base64 chứa dữ liệu nhị phân (cần nhập đúng Key để giải).');
+                if (!autoSelectType) autoSelectType = 'xor';
+            }
+        }
+
+        // 6. Kiểm tra Binary (01001000...)
+        if (/^([01]{8}\s*)+$/.test(raw)) {
+            findings.push('• Phát hiện: Mã nhị phân (Binary 8-bit ASCII).');
+        }
+
+        if (findings.length === 0) {
+            findings.push('• Không khớp các chuẩn encode cơ bản — Có thể là mã hóa tùy biến sâu (Obfuscator nhiều lớp, AES/RC4) hoặc code gốc chưa mã hóa.');
+        }
+
+        detectList.innerHTML = findings.map(f => `<li>${f}</li>`).join('');
+        detectBox.style.display = 'block';
+
+        // Tự động chuyển sang tab Giải mã và chọn đúng kiểu tìm được
+        if (autoSelectType) {
+            setMode('decode');
+            document.getElementById('cipherType').value = autoSelectType;
+            onCipherChange();
+            setStatus(`Đã nhận diện kiểu mã hóa và tự động chọn chế độ Giải mã (${autoSelectType.toUpperCase()})!`);
+        } else {
+            setStatus('Đã hoàn tất phân tích chuỗi.');
+        }
+    }
+
+    function processScript() {
+        const input = document.getElementById('inputArea').value;
+        const type = document.getElementById('cipherType').value;
+        const key = document.getElementById('xorKey').value;
+
+        if (!input) {
+            setStatus('Chưa có nội dung đầu vào.', true);
+            return;
+        }
+
+        try {
+            let result = '';
+            if (currentMode === 'encode') {
+                switch (type) {
+                    case 'base64': result = toBase64(input); break;
+                    case 'hex': result = toHex(input); break;
+                    case 'xor': result = xorCipher(input, key); break;
+                    case 'url': result = encodeURIComponent(input); break;
+                    case 'rev_b64': result = toBase64([...input].reverse().join('')); break;
+                    case 'lua_dec': result = toLuaDec(input); break;
+                }
+                setStatus(`Đã mã hóa (${type.toUpperCase()}) thành công.`);
+            } else {
+                switch (type) {
+                    case 'base64': result = fromBase64(input); break;
+                    case 'hex': result = fromHex(input); break;
+                    case 'xor': result = xorDecipher(input, key); break;
+                    case 'url': result = decodeURIComponent(input); break;
+                    case 'rev_b64': result = [...fromBase64(input)].reverse().join(''); break;
+                    case 'lua_dec': result = fromLuaDec(input); break;
+                }
+                setStatus(`Đã giải mã (${type.toUpperCase()}) thành công.`);
+            }
+
+            document.getElementById('outputArea').value = result;
+            updateCounts();
+        } catch (err) {
+            setStatus('Lỗi xử lý: ' + err.message, true);
+        }
+    }
+
+    function copyOutput() {
+        const out = document.getElementById('outputArea').value;
+        if (!out) return setStatus('Không có kết quả để copy.', true);
+        navigator.clipboard.writeText(out).then(() => {
+            setStatus('Đã copy kết quả vào bộ nhớ tạm.');
+        });
+    }
+
+    function swapPanels() {
+        const inArea = document.getElementById('inputArea');
+        const outArea = document.getElementById('outputArea');
+        const temp = inArea.value;
+        inArea.value = outArea.value;
+        outArea.value = temp;
+        setMode(currentMode === 'encode' ? 'decode' : 'encode');
+        updateCounts();
+    }
+
+    function clearAll() {
+        document.getElementById('inputArea').value = '';
+        document.getElementById('outputArea').value = '';
+        document.getElementById('detectBox').style.display = 'none';
+        updateCounts();
+        setStatus('Đã xóa sạch.');
+    }
+
+    updateCounts();
+</script>
 </body>
 </html>
